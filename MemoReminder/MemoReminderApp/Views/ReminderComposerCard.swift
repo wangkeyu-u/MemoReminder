@@ -1,5 +1,9 @@
 import SwiftUI
 
+/// Presentational form for creating a reminder.
+///
+/// The card owns only temporary input bindings. Validation, persistence, and
+/// notification scheduling stay in the parent coordinator view.
 struct ReminderComposerCard: View {
     @Binding var content: String
     @Binding var targetTime: Date
@@ -72,6 +76,7 @@ struct ReminderComposerCard: View {
     }
 }
 
+/// Compact segmented-control style button for lead-time presets.
 private struct LeadTimeButton: View {
     let minutes: Int
     let isSelected: Bool
@@ -96,4 +101,3 @@ private struct LeadTimeButton: View {
         minutes == 60 ? "1 小时" : "\(minutes) 分钟"
     }
 }
-

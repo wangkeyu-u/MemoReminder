@@ -1,5 +1,9 @@
 import SwiftUI
 
+/// Reusable row for a single reminder.
+///
+/// Action closures are injected from the parent so this view stays stateless and
+/// can be reused across today, upcoming, completed, and search result sections.
 struct ReminderRow: View {
     let reminder: Reminder
     let select: () -> Void

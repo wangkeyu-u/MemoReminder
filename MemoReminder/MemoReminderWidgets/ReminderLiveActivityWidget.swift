@@ -4,6 +4,11 @@ import WidgetKit
 #if canImport(ActivityKit)
 import ActivityKit
 
+/// Widget Extension rendering for the reminder Live Activity.
+///
+/// The app creates the activity; this extension owns the Lock Screen and
+/// Dynamic Island layouts. Tapping either surface deep-links back into the app
+/// with the reminder UUID.
 struct ReminderLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: ReminderActivityAttributes.self) { context in
@@ -63,4 +68,3 @@ struct MemoReminderWidgetBundle: WidgetBundle {
     }
 }
 #endif
-

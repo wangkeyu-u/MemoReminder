@@ -1,5 +1,11 @@
 import Foundation
 
+/// Main-actor state container for all reminders.
+///
+/// The store owns local persistence and validation, while system side effects
+/// such as scheduling/cancelling notifications are handled by
+/// `NotificationScheduler`. This keeps data mutations predictable and makes it
+/// easier to keep `UserDefaults` and pending notifications in sync.
 @MainActor
 final class ReminderStore: ObservableObject {
     @Published private(set) var reminders: [Reminder] = []
@@ -8,6 +14,8 @@ final class ReminderStore: ObservableObject {
     private let storageKey = "memoReminder.reminders.v1"
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
+
+    // MARK: - Read Models
 
     var activeReminders: [Reminder] {
         reminders
@@ -41,6 +49,8 @@ final class ReminderStore: ObservableObject {
         return reminders.first { $0.id == selectedReminderID }
     }
 
+    // MARK: - Persistence
+
     func load() async {
         guard let data = UserDefaults.standard.data(forKey: storageKey) else {
             reminders = []
@@ -54,6 +64,10 @@ final class ReminderStore: ObservableObject {
         }
     }
 
+    // MARK: - Mutations
+
+    /// Creates a reminder and returns the exact saved model so the caller can
+    /// schedule a local notification using the same UUID.
     func add(content: String, targetTime: Date, leadTimeMinutes: Int) throws -> Reminder {
         let trimmedContent = content.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -111,6 +125,9 @@ final class ReminderStore: ObservableObject {
         return editedReminder
     }
 
+    /// Snoozing intentionally changes both the target time and notification
+    /// time. The notification is scheduled a few seconds from now so the user
+    /// gets a predictable follow-up after choosing "稍后 10 分钟".
     func snooze(_ reminder: Reminder, minutes: Int = 10) -> Reminder? {
         let newTargetTime = Date().addingTimeInterval(TimeInterval(minutes * 60))
         var updatedReminder: Reminder?
@@ -165,6 +182,8 @@ final class ReminderStore: ObservableObject {
         markNotified(id: id)
     }
 
+    /// Centralized update path so every mutation refreshes `updatedAt` and is
+    /// immediately persisted.
     private func update(_ id: UUID, mutate: (inout Reminder) -> Void) {
         guard let index = reminders.firstIndex(where: { $0.id == id }) else {
             return
@@ -175,6 +194,9 @@ final class ReminderStore: ObservableObject {
         save()
     }
 
+    /// Calculates the notification fire date from the user's target time. If
+    /// the lead time would put the notification in the past, it is clamped to a
+    /// near-future value so `UNUserNotificationCenter` can still schedule it.
     private static func notificationTime(for targetTime: Date, leadTimeMinutes: Int) -> Date {
         let preferredTime = targetTime.addingTimeInterval(TimeInterval(-leadTimeMinutes * 60))
         return max(preferredTime, Date().addingTimeInterval(3))

@@ -1,6 +1,11 @@
 import SwiftUI
 import UIKit
 
+/// Main composition view for the app.
+///
+/// `ContentView` intentionally coordinates user actions across `ReminderStore`
+/// and `NotificationScheduler`: the store changes app data, while the scheduler
+/// mirrors those changes into iOS notification/Live Activity state.
 struct ContentView: View {
     @EnvironmentObject private var store: ReminderStore
     @EnvironmentObject private var notificationScheduler: NotificationScheduler
@@ -14,6 +19,8 @@ struct ContentView: View {
     @State private var editingReminder: Reminder?
 
     private let leadTimeOptions = [5, 15, 30, 60]
+
+    // MARK: - Filtered Sections
 
     private var filteredTodayReminders: [Reminder] {
         filter(store.todayReminders)
@@ -149,6 +156,10 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Bindings
+
+    /// Converts the store's selected reminder ID into a sheet-friendly binding.
+    /// This lets deep links and row taps share the same detail presentation path.
     private var selectedReminderBinding: Binding<Reminder?> {
         Binding(
             get: { store.selectedReminder },
@@ -159,6 +170,8 @@ struct ContentView: View {
             }
         )
     }
+
+    // MARK: - User Actions
 
     private func saveReminder() {
         errorMessage = nil
@@ -172,6 +185,8 @@ struct ContentView: View {
 
             Task {
                 do {
+                    // Persist first, then schedule with the saved model so the
+                    // notification identifier matches the stored UUID.
                     try await notificationScheduler.schedule(reminder: reminder)
                     content = ""
                     targetTime = Calendar.current.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
@@ -188,6 +203,8 @@ struct ContentView: View {
     }
 
     private func startEditing(_ reminder: Reminder) {
+        // The edit sheet and detail sheet are separate presentations; clearing
+        // the selection prevents both from competing for presentation.
         store.clearSelection()
         editingReminder = reminder
     }
@@ -201,6 +218,8 @@ struct ContentView: View {
         )
 
         Task {
+            // Cancel the old request before scheduling the edited reminder to
+            // prevent duplicate notifications after a time/content change.
             await notificationScheduler.cancel(reminder: reminder)
             try? await notificationScheduler.schedule(reminder: editedReminder)
             UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -210,6 +229,8 @@ struct ContentView: View {
 
     private func delete(_ reminder: Reminder) {
         Task {
+            // System notification state is external to the app's local array, so
+            // it must be explicitly cancelled before removing the model.
             await notificationScheduler.cancel(reminder: reminder)
             store.delete(reminder)
             UINotificationFeedbackGenerator().notificationOccurred(.warning)

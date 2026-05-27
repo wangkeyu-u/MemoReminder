@@ -2,6 +2,35 @@
 
 一款 iOS 备忘提醒 App 的 MVP 源码骨架。
 
+## 面试版定位
+
+这是三个项目里的主项目，面试时优先讲它。推荐主线：
+
+> 我独立做了一个 iOS 备忘提醒 App，用 SwiftUI 完成提醒创建、编辑、分组和搜索，使用 UserNotifications 做本地通知调度，并支持通知快捷操作里的完成和稍后 10 分钟。项目重点不是页面堆砌，而是维护提醒数据和系统 pending notification 的一致性：创建、修改、删除、完成、稍后提醒时，都要同步更新本地状态和通知中心。
+
+面试官追问时优先展开这 4 个点：
+
+- `Reminder` 模型里用 `UUID` 作为提醒和通知的稳定关联 ID。
+- `NotificationScheduler` 先取消旧通知再添加新通知，避免修改提醒后重复触发。
+- `UNNotificationCategory` + `UNNotificationAction` 支持“完成”和“稍后 10 分钟”。
+- ActivityKit / Widget Extension 作为提醒状态展示入口，本地通知仍是稳定触达通道。
+
+## 工程结构
+
+- `MemoReminderApp`：App 入口，负责创建全局 `ReminderStore` 和 `NotificationScheduler`，并处理 deep link。
+- `Reminder`：核心领域模型，用一个稳定 `UUID` 串起本地数据、通知请求、Live Activity 和跳转链接。
+- `ReminderStore`：主线程状态容器，负责提醒的校验、增删改查、分组和本地持久化。
+- `NotificationScheduler`：系统通知适配层，负责权限、通知调度、通知快捷操作和前台展示。
+- `LiveActivityManager` + `ReminderLiveActivityWidget`：ActivityKit/WidgetKit 接入层，负责灵动岛和锁屏活动展示。
+- `Views`：SwiftUI 展示层，组件只接收数据和 action closure，业务状态集中由 Store 和 Scheduler 维护。
+
+## 关键工程设计
+
+- 创建、编辑、删除、完成、稍后提醒都会同步更新本地数据和系统通知，避免出现“列表里没有了但通知还会响”的状态不一致。
+- 编辑提醒时先取消旧的 pending notification，再用同一个 reminder UUID 重新调度，避免重复通知。
+- Store 的 mutation 方法返回保存后的 `Reminder`，调用方可以直接用同一份数据去调度通知和 Live Activity。
+- ActivityKit 作为增强展示入口，本地通知仍作为第一版的稳定触达通道。
+
 ## 当前已实现
 
 - 创建提醒

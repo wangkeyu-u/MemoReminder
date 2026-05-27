@@ -1,6 +1,14 @@
 import Foundation
 
+/// Domain model for one memo reminder.
+///
+/// The `id` is intentionally used as the stable bridge between app state,
+/// pending local notifications, deep links, and Live Activities. Keeping that
+/// identifier stable is what lets edit/delete/complete operations update the
+/// matching system objects instead of creating duplicates.
 struct Reminder: Identifiable, Codable, Equatable {
+    /// User-visible lifecycle state. Notification delivery changes a reminder
+    /// to `notified`, while explicit user actions move it to a terminal state.
     enum Status: String, Codable, CaseIterable {
         case pending
         case notified
@@ -23,7 +31,10 @@ struct Reminder: Identifiable, Codable, Equatable {
 
     let id: UUID
     var content: String
+    /// The actual time the user cares about, for example "buy a laptop at 7 PM".
     var targetTime: Date
+    /// The time the system notification should fire. This can be earlier than
+    /// `targetTime` when the user selects a lead time.
     var notifyTime: Date
     var leadTimeMinutes: Int
     var status: Status
@@ -80,6 +91,9 @@ struct Reminder: Identifiable, Codable, Equatable {
         case updatedAt
     }
 
+    /// Custom decoding keeps older locally saved reminders readable if new
+    /// fields are added later. `leadTimeMinutes` defaults to 30 for data saved
+    /// by earlier app versions.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)

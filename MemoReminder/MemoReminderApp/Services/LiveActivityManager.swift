@@ -4,7 +4,14 @@ import Foundation
 import ActivityKit
 #endif
 
+/// Optional ActivityKit bridge used by the app target.
+///
+/// Local notifications remain the reliable reminder channel. Live Activities
+/// are treated as a richer glanceable surface when the device and user settings
+/// allow it, so all ActivityKit calls are guarded by availability checks.
 enum LiveActivityManager {
+    /// Starts a Live Activity for the reminder. The Widget Extension renders
+    /// this state on the Lock Screen and Dynamic Island.
     static func startActivity(for reminder: Reminder) async {
         #if canImport(ActivityKit)
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
@@ -30,6 +37,7 @@ enum LiveActivityManager {
         #endif
     }
 
+    /// Ends any activity that was created for the matching reminder UUID.
     static func endActivity(for reminderID: UUID) async {
         #if canImport(ActivityKit)
         for activity in Activity<ReminderActivityAttributes>.activities
@@ -39,4 +47,3 @@ enum LiveActivityManager {
         #endif
     }
 }
-

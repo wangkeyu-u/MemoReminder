@@ -1,5 +1,9 @@
 import SwiftUI
 
+/// Section renderer for grouped reminders.
+///
+/// Grouping is computed by `ReminderStore`/`ContentView`; this view focuses on
+/// consistent layout, empty states, and forwarding row actions.
 struct ReminderSection: View {
     let title: String
     let subtitle: String
